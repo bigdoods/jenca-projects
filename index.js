@@ -5,15 +5,21 @@ var Router = require('./router')
 
 var args = require('minimist')(process.argv, {
   alias:{
-    p:'port'
+    p:'port',
+    s:'storage',
+    d:'datafile'
   },
   default:{
-    port:process.env.PORT || 80
+    port:process.env.PORT || 80,
+    storage:process.env.STORAGE || 'jsonfile',
+    datafile:process.env.DATAFILE || '/tmp/jencadata.json',
   }
 })
 
+var storage = require('storage/' + args.storage)(args)
 var router = Router({
-
+  storage:storage,
+  datafile:datafile
 })
 
 var server = http.createServer(router.handler)

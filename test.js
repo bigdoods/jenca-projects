@@ -1,6 +1,7 @@
 var tape = require('tape')
 var async = require('async')
 var Router = require('./router')
+var JSONFileStorage = require('./storage/jsonfile')
 var path = require('path')
 var http = require('http')
 var from2 = require('from2-string')
@@ -54,4 +55,30 @@ tape('/v1/version', function (t) {
     t.end()
   })
 
+})
+
+tape('jsonfile: create project', function(t){
+  var storage = JSONFileStorage({
+    memory:true
+  })
+
+  // create a project
+  storage.create_project(67, {
+    apples:10
+  }, function(err){
+    if(err) t.err(err.toString())
+    var state = storage.get_state()
+
+    var projects = state.users['67'].projects
+    var projectKeys = Object.keys(projects)
+    t.equal(projectKeys.length, 1, 'there is one project')
+
+    var projectKey = projectKeys[0]
+    var project = projects[projectKey]
+
+    t.equal(project.apples, 10, 'the project setting is set')
+    t.deepEqual(project.containers, [], 'there is an empty list of containers')
+
+    t.end()
+  })
 })
