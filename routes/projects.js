@@ -28,6 +28,8 @@ module.exports = {
             res.statusCode = 201
             res.end(JSON.stringify(data))
           })
+
+          // trigger build and upload of kubernetes manifest
         });
 
       }
@@ -54,6 +56,8 @@ module.exports = {
           storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, JSON.parse(req.body), function(err, data){
             res.end(JSON.stringify(data))
           })
+
+          // trigger build and upload of updated kubernetes manifest
         })
       },
       DELETE:function(req, res, opts, cb){
@@ -61,6 +65,8 @@ module.exports = {
         storage.delete_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
           res.end()
         })
+
+        // trigger kubernetes to kill of relevant containers
       }
     }
   }
