@@ -1,12 +1,18 @@
 var HttpHashRouter = require('http-hash-router')
 
 var Version = require('./routes/version')
+var Projects = require('./routes/projects')
 
 module.exports = function(config){
 
   var router = HttpHashRouter();
 
   router.set('/v1/version', Version(config))
+
+  // fish out user id from headers
+  router.set('/v1/projects', Projects.index())
+  router.set('/v1/projects/:projectid', Projects.show())
+
 
   function handler(req, res) {
     router(req, res, {}, onError);

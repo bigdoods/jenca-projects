@@ -1,5 +1,7 @@
 var fs = require('fs');
 var uuid = require('uuid');
+var path = require('path');
+
 
 /*
 
@@ -14,7 +16,7 @@ var uuid = require('uuid');
 
               },
               bimserver:{
-                
+
               }
             }
           }
@@ -22,24 +24,30 @@ var uuid = require('uuid');
       }
     }
   }
-  
+
 */
 
 module.exports = function(opts){
 
-  var state = {
-    users:{}
-  }
+  var state = {}
 
-  var file = opts.datafile || '/tmp/jencadata.json'
-
+  var file = opts.datafile || path.join(__dirname, 'jencadata.json')
   if(!fs.existsSync(file)){
     save_data()
+  }
+  reset_state()
+
+  function reset_state(){
+    state = {
+      users:{}
+    }
   }
 
   function save_data(){
     if(opts.memory) return
-    fs.writeFileSync(file, state, 'utf8')
+    fs.writeFileSync(file, state, 'utf8', (err) => {
+      if (err) throw err;
+    })
   }
 
   function ensure_user(id){
@@ -50,7 +58,7 @@ module.exports = function(opts){
     }
     return state.users[id]
   }
-  
+
   function create_project(userid, data, done){
     var id = uuid.v1()
     var user = ensure_user(userid)
@@ -82,6 +90,12 @@ module.exports = function(opts){
       done('there is no user with id: ' + userid)
       return
     }
+
+    if(!state.users[userid].projects[projectid]){
+      done('there is no project with id: ' + projectid)
+      return
+    }
+
     var user = state.users[userid]
     var project = user.projects[projectid]
     done(null, project)
@@ -93,6 +107,7 @@ module.exports = function(opts){
       return
     }
     var user = state.users[userid]
+
     var projects = Object.keys(user.projects).map(function(projectid){
       return user.projects[projectid]
     })
@@ -134,6 +149,8 @@ module.exports = function(opts){
     list_projects:list_projects,
     delete_project:delete_project,
     save_project:save_project,
-    get_state:get_state
+    get_state:get_state,
+
+    reset_state:reset_state
   }
 }
