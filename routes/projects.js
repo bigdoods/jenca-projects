@@ -1,5 +1,6 @@
 var path = require('path')
 var JSONFileStorage = require('../storage/jsonfile')
+var concat = require('concat-stream')
 
 module.exports = function(config){
 
@@ -16,20 +17,14 @@ module.exports = function(config){
       POST:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
 
-        req.body = '';
-        req.on('data', function(chunk) {
-          req.body += chunk.toString()
-        });
-
-        req.on('end', function() {
-          storage.create_project(req.headers['x-jenca-user'], JSON.parse(req.body), function(err, data){
+        req.pipe(concat(body){
+          body = JSON.parse(body.toString())
+          storage.create_project(req.headers['x-jenca-user'], body, function(err, data){
             if(err) return
             res.statusCode = 201
             res.end(JSON.stringify(data))
           })
-
-          // trigger build and upload of kubernetes manifest
-        });
+        })
 
       }
 
@@ -44,26 +39,19 @@ module.exports = function(config){
       PUT:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
 
-        req.body = '';
-        req.on('data', function(chunk) {
-          req.body += chunk.toString()
-        });
-
-        req.on('end', function() {
+        req.pipe(concat(function(body){
+          body = JSON.parse(body.toString())
           storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, JSON.parse(req.body), function(err, data){
             res.end(JSON.stringify(data))
           })
-
-          // trigger build and upload of updated kubernetes manifest
-        })
+        }))
+       
       },
       DELETE:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
         storage.delete_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
           res.end()
         })
-
-        // trigger kubernetes to kill of relevant containers
       }
     }
   }
