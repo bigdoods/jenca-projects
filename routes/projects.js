@@ -2,7 +2,7 @@ var path = require('path')
 var JSONFileStorage = require('../storage/jsonfile')
 
 var storage = JSONFileStorage({
-  memory:true
+  memory:false
 })
 
 module.exports = {
@@ -17,13 +17,15 @@ module.exports = {
       POST:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
 
-        var post_body = '';
+        req.body = '';
         req.on('data', function(chunk) {
-          post_body += chunk.toString()
+          req.body += chunk.toString()
         });
 
         req.on('end', function() {
-          storage.create_project(req.headers['x-jenca-user'], JSON.parse(post_body), function(err, data){
+          storage.create_project(req.headers['x-jenca-user'], JSON.parse(req.body), function(err, data){
+            if(err) return
+            res.statusCode = 201
             res.end(JSON.stringify(data))
           })
         });
@@ -36,8 +38,28 @@ module.exports = {
     return {
       GET:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
-        storage.get_project(req.headers['x-jenca-user'], 1, function(err, data){
-          res.end(data)
+        storage.get_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
+          res.end(JSON.stringify(data))
+        })
+      },
+      PUT:function(req, res, opts, cb){
+        res.setHeader('content-type', 'application/json')
+
+        req.body = '';
+        req.on('data', function(chunk) {
+          req.body += chunk.toString()
+        });
+
+        req.on('end', function() {
+          storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, JSON.parse(req.body), function(err, data){
+            res.end(JSON.stringify(data))
+          })
+        })
+      },
+      DELETE:function(req, res, opts, cb){
+        res.setHeader('content-type', 'application/json')
+        storage.delete_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
+          res.end()
         })
       }
     }
