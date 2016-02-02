@@ -21,7 +21,11 @@ var subject_project_index = 5
   
 */
 function createServer(done){
-  var router = Router({})
+
+  // keep the storage in memory for the tests
+  var router = Router({
+    memory:true
+  })
   var server = http.createServer(router.handler)
   server.listen(testing_port, function(err){
     done(err, server)
@@ -447,6 +451,10 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 */
 tape("jsonfile: create project", function(t){
 
+  var storage = JSONFileStorage({
+    memory:true
+  })
+
   // create a project
   storage.create_project(jenca_user_id, {
     apples:10
@@ -455,7 +463,7 @@ tape("jsonfile: create project", function(t){
     var state = storage.get_state()
 
     var project_keys = Object.keys(state.users[jenca_user_id].projects)
-    t.equal(project_keys.length, (projects.length+1), "there are "+ (projects.length+1)+" projects")
+    t.equal(project_keys.length, 1, "there is 1 project")
 
     var project_id = project_keys.pop()
     var project = state.users[jenca_user_id].projects[project_id]
@@ -464,6 +472,5 @@ tape("jsonfile: create project", function(t){
     t.deepEqual(project.containers, [], "there is an empty list of containers")
 
     t.end()
-    server.close()
   })
 })
