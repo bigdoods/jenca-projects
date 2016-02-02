@@ -1,7 +1,7 @@
 var fs = require('fs');
 var uuid = require('uuid');
 var path = require('path');
-
+var settings = require('../settings');
 
 /*
 
@@ -31,7 +31,7 @@ module.exports = function(opts){
 
   var state = {}
 
-  var file = opts.datafile || path.join(__dirname, 'jencadata.json')
+  var file = opts.datafile || settings.defaultFilePath
   if(!fs.existsSync(file)){
     save_data()
   }

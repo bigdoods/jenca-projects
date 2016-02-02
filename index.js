@@ -2,6 +2,7 @@ var path = require('path')
 var http = require('http')
 var fs = require('fs')
 var Router = require('./router')
+var settings = require('./settings')
 
 var args = require('minimist')(process.argv, {
   alias:{
@@ -12,7 +13,7 @@ var args = require('minimist')(process.argv, {
   default:{
     port:process.env.PORT || 80,
     storage:process.env.STORAGE || 'jsonfile',
-    datafile:process.env.DATAFILE || '/tmp/jencadata.json',
+    datafile:process.env.DATAFILE || settings.defaultFilePath
   }
 })
 
