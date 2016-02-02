@@ -29,13 +29,18 @@ var path = require('path');
 
 module.exports = function(opts){
 
-  var state = {
-    users:{}
-  }
+  var state = {}
 
   var file = opts.datafile || path.join(__dirname, 'jencadata.json')
   if(!fs.existsSync(file)){
     save_data()
+  }
+  reset_state()
+
+  function reset_state(){
+    state = {
+      users:{}
+    }
   }
 
   function save_data(){
@@ -85,6 +90,12 @@ module.exports = function(opts){
       done('there is no user with id: ' + userid)
       return
     }
+
+    if(!state.users[userid].projects[projectid]){
+      done('there is no project with id: ' + projectid)
+      return
+    }
+
     var user = state.users[userid]
     var project = user.projects[projectid]
     done(null, project)
@@ -138,6 +149,8 @@ module.exports = function(opts){
     list_projects:list_projects,
     delete_project:delete_project,
     save_project:save_project,
-    get_state:get_state
+    get_state:get_state,
+
+    reset_state:reset_state
   }
 }
