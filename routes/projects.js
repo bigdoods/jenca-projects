@@ -58,7 +58,7 @@ module.exports = function(config){
 
         req.pipe(concat(function(body){
           body = JSON.parse(body.toString())
-          storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, JSON.parse(req.body), function(err, data){
+          storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, body, function(err, data){
             if(err){
               res.statusCode = 500;
               res.end(err.toString());
