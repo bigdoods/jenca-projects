@@ -1,13 +1,12 @@
 var path = require('path')
 var JSONFileStorage = require('../storage/jsonfile')
 
-var storage = JSONFileStorage({
-  memory:false
-})
+module.exports = function(config){
 
-module.exports = {
-  index:function(){
-    return {
+  var storage = JSONFileStorage(config)
+
+  return {
+    index:{
       GET:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
         storage.list_projects(req.headers['x-jenca-user'], function(err, data){
@@ -34,10 +33,8 @@ module.exports = {
 
       }
 
-    }
-  },
-  show:function(){
-    return {
+    },
+    show:{
       GET:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
         storage.get_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
