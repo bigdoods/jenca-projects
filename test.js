@@ -441,7 +441,10 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 })
 
 /*
-// unit test for the storage mechanism
+
+  unit test for the storage mechanism
+
+*/
 tape("jsonfile: create project", function(t){
 
   // create a project
@@ -464,4 +467,3 @@ tape("jsonfile: create project", function(t){
     server.close()
   })
 })
-*/

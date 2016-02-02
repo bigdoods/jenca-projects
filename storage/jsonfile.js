@@ -29,6 +29,7 @@ var settings = require('../settings');
 
 module.exports = function(opts){
 
+  opts = opts || {}
   var state = {}
 
   var file = opts.datafile || settings.defaultFilePath
