@@ -23,7 +23,7 @@ module.exports = function(config){
       POST:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
 
-        req.pipe(concat(body){
+        req.pipe(concat(function(body){
           body = JSON.parse(body.toString())
           storage.create_project(req.headers['x-jenca-user'], body, function(err, data){
             if(err){
@@ -36,7 +36,7 @@ module.exports = function(config){
             res.statusCode = 201
             res.end(JSON.stringify(data))
           })
-        })
+        }))
 
       }
 
