@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jenca-cloud/jenca-cloud.svg?branch=master)](https://travis-ci.org/jenca-cloud/jenca-cloud)
+[![Build Status](https://travis-ci.org/jenca-cloud/jenca-projects.svg?branch=master)](https://travis-ci.org/jenca-cloud/jenca-projects)
 
 # jenca-projects
 
