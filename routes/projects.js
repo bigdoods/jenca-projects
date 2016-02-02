@@ -21,6 +21,8 @@ module.exports = function(config){
           body = JSON.parse(body.toString())
           storage.create_project(req.headers['x-jenca-user'], body, function(err, data){
             if(err) return
+
+            // trigger build and upload of kubernetes manifest
             res.statusCode = 201
             res.end(JSON.stringify(data))
           })
@@ -42,6 +44,8 @@ module.exports = function(config){
         req.pipe(concat(function(body){
           body = JSON.parse(body.toString())
           storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, JSON.parse(req.body), function(err, data){
+
+            // trigger build and upload of updated kubernetes manifest
             res.end(JSON.stringify(data))
           })
         }))
@@ -50,6 +54,8 @@ module.exports = function(config){
       DELETE:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
         storage.delete_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
+
+          // trigger kubernetes to kill of relevant containers
           res.end()
         })
       }
