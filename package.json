@@ -23,7 +23,10 @@
     "hyperquest": "^1.2.0",
     "hyperrequest": "0.0.4",
     "tape": "^4.3.0",
-    "rimraf":"^2.5.1"
+    "rimraf":"^2.5.1",
+    "multilevel":"^7.3.0",
+    "net":"^1.0.2",
+    "level":"^1.4.0"
   },
   "dependencies": {
     "concat-stream": "^1.5.1",

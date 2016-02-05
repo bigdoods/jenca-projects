@@ -10,7 +10,7 @@ module.exports = function(opts){
   opts = opts || {}
 
   var db = multilevel.client();
-  var con = net.connect(settings.leveldbPort);
+  var con = net.connect(opts.port, opts.host);
   con.pipe(db.createRpcStream()).pipe(con);
 
   function is(type, obj) {
@@ -18,23 +18,35 @@ module.exports = function(opts){
       return obj !== undefined && obj !== null && clas === type;
   }
 
-  function save_data(prefix, o){
+  function save_data(prefix, o, done){
     Object.keys(o).forEach(function(key) {
       var val = o[key];
 
       switch(true){
         case is('Object', val):
-          save_data(prefix+"."+key, val)
+          save_data(prefix+"."+key, val, done)
           break
         case is('Array', val):
           val.forEach(function(value, index) {
-            set(prefix+"."+index, value, function(){})
+            set(prefix+"."+index, value, function(err, value){
+              if (err){
+                done(err)
+                return
+              }
+            })
           })
           break
         default:
-          set(prefix+"."+key, val, function(){})
+          set(prefix+"."+key, val, function(err){
+            if (err){
+              done(err)
+              return
+            }
+          })
       }
     });
+
+    done(null, o)
   }
 
 
@@ -52,75 +64,107 @@ module.exports = function(opts){
     user[userid] = {"projects":{}}
     user[userid]["projects"][projectid] = data
 
-    save_data(settings.levelPrefix, {"users":user})
-    done(null, data)
+    save_data(settings.levelPrefix, {"users":user}, function(err){
+      if (err){
+        done(err)
+        return
+      }
+
+      done(null, data)
+    })
   }
 
   function project_running(userid, data, done){
-    var user = get(settings.levelPrefix +".users."+userid)
-    if(!user){
-      done('there is no user with id: ' + userid)
-      return
-    }
+    get(settings.levelPrefix +".users."+userid, function(err, user){
 
-    var project = user.projects[data.id]
-    project.containers = data.containers
-    save_data(settings.levelPrefix, {"users":user})
-    done(null, project)
+      if(!user){
+        done('there is no user with id: ' + userid)
+        return
+      }
+
+      var project = user.projects[data.id]
+      project.containers = data.containers
+      save_data(settings.levelPrefix, {"users":user}, function(err){
+        if (err){
+          done(err)
+          return
+        }
+
+        done(null, project)
+      })
+    })
   }
 
   function get_project(userid, projectid, done){
-    var user = get(settings.levelPrefix +".users."+userid)
-    if(!user){
-      done('there is no user with id: ' + userid)
-      return
-    }
+    get(settings.levelPrefix +".users."+userid, function(err, user){
+      if(!user){
+        done('there is no user with id: ' + userid)
+        return
+      }
 
-    if(!user.projects[projectid]){
-      done('there is no project with id: ' + projectid)
-      return
-    }
+      if(!user.projects[projectid]){
+        done('there is no project with id: ' + projectid)
+        return
+      }
 
-    var project = user.projects[projectid]
-    done(null, project)
+      var project = user.projects[projectid]
+      done(null, project)
+    })
   }
 
   function list_projects(userid, done){
-    var user = get(settings.levelPrefix +".users."+userid)
-    if(!user){
-      done('there is no user with id: ' + userid)
-      return
-    }
+    get_range(settings.levelPrefix +".users."+userid +".*", function(err, user){
+      if(!user){
+        done('there is no user with id: ' + userid)
+        return
+      }
 
-    var projects = Object.keys(user.projects).map(function(projectid){
-      return user.projects[projectid]
+      var projects = Object.keys(user.users[userid].projects).map(function(projectid){
+        return user.users[userid].projects[projectid]
+      })
+
+      done(null, projects)
     })
-    done(null, projects)
   }
 
   function delete_project(userid, projectid, done){
-    var user = get(settings.levelPrefix +".users."+userid)
-    if(!user){
-      done('there is no user with id: ' + userid)
-      return
-    }
+    get(settings.levelPrefix +".users."+userid, function(err, user){
+      if(!user){
+        done('there is no user with id: ' + userid)
+        return
+      }
 
-    delkey(settings.levelPrefix +".users."+ userid +".projects."+ projectid +".*")
-    done()
+      delkey(settings.levelPrefix +".users."+ userid +".projects."+ projectid +".*", function(err){
+        if (err){
+          done(err)
+          return
+        }
+
+        done()
+      })
+    })
   }
 
   function save_project(userid, projectid, data, done){
-    var user = get(settings.levelPrefix +".users."+userid)
-    if(!user){
-      done('there is no user with id: ' + userid)
-      return
-    }
-    var project = user.projects[projectid]
-    Object.keys(data).forEach(function(prop){
-      project[prop] = data[prop]
+    get(settings.levelPrefix +".users."+userid, function(err, user){
+      if(!user){
+        done('there is no user with id: ' + userid)
+        return
+      }
+
+      var project = user.projects[projectid]
+      Object.keys(data).forEach(function(prop){
+        project[prop] = data[prop]
+      })
+      save_data(settings.levelPrefix, {"users":user}, function(err){
+        if (err){
+          done(err)
+          return
+        }
+
+        done(null, project)
+      })
     })
-    save_data(settings.levelPrefix, {"users":user})
-    done(null, project)
   }
 
 
@@ -133,45 +177,61 @@ module.exports = function(opts){
 
 
   /* level db getters and setters */
-  function set(key, value){
+  function set(key, value, done){
     console.log("leveldb set "+ key + ":" + value)
     db.put(key, value, function (err) {
-      if (err) throw err;
+      if (err){
+        done(err)
+        return
+      }
+
+      done(null, value)
     })
   }
 
-  function delkey(key){
+  function delkey(key, done){
     console.log("leveldb delkey "+ key)
     db.del(key, function (err, value) {
-      if (err) throw err;
+      if (err){
+        done(err)
+        return
+      }
+
+      done(null, value)
     });
   }
 
-  function get(key){
-    // check for range key
-    if(is("Object", key) || (is("String", key) && key.indexOf("*") >=0)){
-      var found_values = {}
+  function get_range(key, done){
+    var found_values = {}
 
-      client.db.createReadStream(key)
-      .on('data', function (data) {
-        found_values[data.key] = data.value
-      })
-      .on('error', function (err) {
-        next(err)
-      })
-      .on('end', function () {
-        console.log("leveldb get stream "+ key)
-        console.dir(found_values)
-        dot.object(found_values);
-        return found_values
-      })
-    }else{
-      var value = db.get(key, function (err, value) {
-        if (err) throw err;
-        console.log("leveldb get "+ key + ":" + value)
-        return value
-      });
-    }
+    db.createReadStream(key)
+    .on('data', function (data) {
+      found_values[data.key] = data.value
+    })
+    .on('error', function (err) {
+      done(err)
+      return
+    })
+    .on('end', function () {
+
+      console.log("leveldb get stream "+ key)
+      console.dir(found_values)
+
+      dot.object(found_values);
+      done(null, found_values[settings.levelPrefix])
+    })
+  }
+
+  function get(key, done){
+    var value = db.get(key, function (err, value) {
+      if (err){
+        done(err)
+        return
+      }
+
+      console.log("leveldb get "+ key + ":" + value)
+      done(null, value)
+    });
   }
 
 /*  function get_default(key, default_value, cb){

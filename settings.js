@@ -1,5 +1,6 @@
 module.exports = {
   defaultFilePath:'/tmp/jencadata.json',
-  leveldbPort: 3000,
+  leveldbPort: 8303,
+  leveldbHost: "localhost",
   levelPrefix:"projects"
 }

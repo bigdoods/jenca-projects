@@ -9,10 +9,17 @@ var from2 = require("from2-string")
 var hyperquest = require("hyperquest")
 var hyperrequest = require("hyperrequest")
 var concat = require("concat-stream")
+var settings = require('./settings')
+var rimraf = require("rimraf")
 
 var jenca_user_id = "banana-man"
 var testing_port = 8060
 var subject_project_index = 5
+
+
+var multilevel = require('multilevel');
+var net = require('net');
+var level = require('level');
 
 
 /*
@@ -476,26 +483,86 @@ tape("jsonfile: create project", function(t){
   })
 })
 
+
+
+
+
+
+
+
+
+
+
+
+
+function createLevelServer(done){
+  rimraf("/tmp/leveldb-testing", {}, function(err){
+    if(err) return next(err)
+
+    var db = level("/tmp/leveldb-testing");
+    var con
+    net.createServer(function (connection) {
+      connection.pipe(multilevel.server(db)).pipe(connection);
+      con = connection
+    }).listen(8889, function(){
+      done(null, db, con)
+    });
+
+  })
+}
+
 tape("leveldb: create project", function(t){
 
-  var storage = levelDBStorage()
+  var storage = levelDBStorage({port:8889,host:"localhost"})
+  var db
+  var con
 
-  // create a project
-  storage.create_project(jenca_user_id, {
-    apples:10
-  }, function(err){
-    if(err) t.err(err.toString())
-    var projects = storage.list_projects(jenca_user_id)
+  async.series([
 
-    var project_keys = Object.keys(projects)
-    t.equal(project_keys.length, 1, "there is 1 project")
+    // create the server
+    function(next){
+      createLevelServer(function(err, database, connection){
+        if(err) return next(err)
+        db = database
+        con = connection
+        next()
+      })
+    },
 
-    var project_id = project_keys.pop()
-    var project = projects[project_id]
+    function(next){
+      // create a project
+      storage.create_project(jenca_user_id, {
+        apples:"10"
+      }, function(err){
+        if(err) return next(err)
 
-    t.equal(project.apples, 10, "the project setting is set")
-    t.deepEqual(project.containers, [], "there is an empty list of containers")
+        storage.list_projects(jenca_user_id, function(err, projects){
+          if(err) next(err)
 
+          var project_keys = Object.keys(projects)
+          t.equal(project_keys.length, 1, "there is 1 project")
+
+          var project_id = project_keys.pop()
+          var project = projects[project_id]
+
+          t.equal(project.apples, "10", "the project setting is set")
+          t.deepEqual(project.containers, [], "there is an empty list of containers")
+
+          next()
+
+        })
+      })
+    }
+  ], function(err){
+    if(err){
+      t.error(err)
+      db.close()
+      con.close()
+      t.end()
+      return
+    }
+    db.close()
+    con.close()
     t.end()
   })
 })
