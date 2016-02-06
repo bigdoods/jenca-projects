@@ -9,43 +9,99 @@ var hyperquest = require("hyperquest")
 var hyperrequest = require("hyperrequest")
 var concat = require("concat-stream")
 
-var storage = JSONFileStorage({
-  memory:true
-})
-
 var jenca_user_id = "banana-man"
 var testing_port = 8060
 var subject_project_index = 5
 
-// seed some projects
-var projects = []
-for(i=1;i<=10;i++)
-  storage.create_project(jenca_user_id, {
-    name:"Testing Project "+i
-  }, function(err, data){
 
-    hyperrequest({
-      url: "http://127.0.0.1:"+ testing_port +"/v1/projects", // The path to request including `http://`. Alternative keys : `uri` or `path`
-      method: "POST", // http method
-      json: data,
-      headers: { // http headers object
-          "x-jenca-user":jenca_user_id
-      },
-    }, function(err, resp){
-      if(err){
-        console.log(err)
-        return
-      }
+/*
 
-      // update the projects array with saved data
-      projects.push(resp.body)
+  boot a test server for each test so the state from one
+  does not affect another test
+  
+*/
+function createServer(done){
+
+  // keep the storage in memory for the tests
+  var router = Router({
+    memory:true
+  })
+  var server = http.createServer(router.handler)
+  server.listen(testing_port, function(err){
+    done(err, server)
+  })
+}
+
+/*
+  
+  make a list of N projects
+  
+*/
+function getProjectData(count){
+
+  count = count || 10;
+  
+  var projectData = []
+  for(i=1;i<=count;i++){
+    projectData.push({
+      name:"Testing Project "+i
     })
+  }
+  return projectData
+}
 
+/*
+
+  post 10 projects to the test server
+  return an array of the 10 projects as they exist on the server
+  
+*/
+function populateData(projects, done){
+  var projectData = []
+  /*
+  
+    map the array of names onto an array of functions
+    that will POST a project with that name
+    
+  */
+  var createFunctions = projects.map(function(data){
+
+    /*
+    
+      this is the async function that will run via async.series
+      
+    */
+    return function(next){
+      hyperrequest({
+        url: "http://127.0.0.1:"+ testing_port +"/v1/projects",
+        method: "POST",
+        json: data,
+        headers: {
+            "x-jenca-user":jenca_user_id
+        }
+      }, function(err, resp){
+
+        // always return errors so parent code is notified
+        if(err) return next(err.toString())
+
+        projectData.push(resp.body)
+
+        next()
+      })
+    }
   })
 
-var router = Router({})
-var server = http.createServer(router.handler)
-server.listen(testing_port)
+  /*
+  
+    run over the project creation
+    return the array of returned project data
+    
+  */
+  async.series(createFunctions, function(err){
+    if(err) return done(err)
+    done(null, projectData)
+  })
+}
 
 /*
   Test that the version of the module returns the correct string
@@ -53,9 +109,20 @@ server.listen(testing_port)
 tape("GET /v1/version", function (t) {
 
   var config = require(path.join(__dirname, "package.json"))
-
+  var server;
 
   async.series([
+
+    // create the server
+    function(next){
+      createServer(function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+
+    // read the version from the API
     function(next){
       var req = hyperquest("http://127.0.0.1:"+testing_port+"/v1/version", {
         method:"GET",
@@ -84,9 +151,11 @@ tape("GET /v1/version", function (t) {
   ], function(err){
     if(err){
       t.error(err)
+      server.close()
       t.end()
       return
     }
+    server.close()
     t.end()
   })
 
@@ -94,13 +163,38 @@ tape("GET /v1/version", function (t) {
 
 
 /*
-  Seed the system with projects against a user and query the API to check they are all returned
+
+  Query the api to check the projects we have saved are actually there
+  
 */
+
 tape("GET /v1/projects", function (t) {
 
-  var config = require(path.join(__dirname, "package.json"))
+  var projects;
+  var server;
 
   async.series([
+
+    // create the server
+    function(next){
+      createServer(function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+    
+    // populate some projects
+    function(next){
+      var rawData = getProjectData(10)
+      populateData(rawData, function(err, projectsReturned){
+        if(err) return next(err)
+        projects = projectsReturned;
+        next()
+      })
+    },
+
+    // test the length of projects matches
     function(next){
       hyperrequest({
         "url":"http://127.0.0.1:"+ testing_port +"/v1/projects",
@@ -120,23 +214,47 @@ tape("GET /v1/projects", function (t) {
   ], function(err){
     if(err){
       t.error(err)
+      server.close()
       t.end()
       return
     }
+    server.close()
     t.end()
   })
 
 })
 
-
 /*
+
   seed the system with projects and retrieve one to check it's attributes
+
 */
 tape("GET /v1/projects/:projectid", function (t) {
 
-  var config = require(path.join(__dirname, "package.json"))
-
+  var server;
   async.series([
+
+    // create the server
+    function(next){
+      createServer(function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+
+
+    // populate some projects
+    function(next){
+      var rawData = getProjectData(10)
+      populateData(rawData, function(err, projectsReturned){
+        if(err) return next(err)
+        projects = projectsReturned;
+        next()
+      })
+    },
+
+    // get a single project
     function(next){
 
       hyperrequest({
@@ -157,24 +275,47 @@ tape("GET /v1/projects/:projectid", function (t) {
   ], function(err){
     if(err){
       t.error(err)
+      server.close()
       t.end()
       return
     }
+    server.close()
     t.end()
   })
 
 })
 
-
-
 /*
+
   seed the system with projects and update one with known data to check it is updated
+
 */
 tape("PUT /v1/projects/:projectid", function (t) {
 
-  var config = require(path.join(__dirname, "package.json"))
+  var projects;
+  var server;
 
   async.series([
+
+    // create the server
+    function(next){
+      createServer(function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+
+    // populate some projects
+    function(next){
+      var rawData = getProjectData(10)
+      populateData(rawData, function(err, projectsReturned){
+        if(err) return next(err)
+        projects = projectsReturned;
+        next()
+      })
+    },
+
     function(next){
 
       projects[subject_project_index].name = "A totally different name"
@@ -217,24 +358,45 @@ tape("PUT /v1/projects/:projectid", function (t) {
   ], function(err){
     if(err){
       t.error(err)
+      server.close()
       t.end()
       return
     }
+    server.close()
     t.end()
   })
 
 })
 
 
-
-/*
-  seed the system with projects and delete one
-*/
+// seed the system with projects and delete one
 tape("DELETE /v1/projects/:projectid", function (t) {
 
-  var config = require(path.join(__dirname, "package.json"))
+  var projects;
+  var server;
 
   async.series([
+
+
+    // create the server
+    function(next){
+      createServer(function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+
+    // populate some projects
+    function(next){
+      var rawData = getProjectData(10)
+      populateData(rawData, function(err, projectsReturned){
+        if(err) return next(err)
+        projects = projectsReturned;
+        next()
+      })
+    },
+
     function(next){
 
       var req = hyperrequest({
@@ -261,6 +423,7 @@ tape("DELETE /v1/projects/:projectid", function (t) {
         }
       }, function(err, resp){
         if(err) return next(err)
+
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(resp.body.length, (projects.length-1), "the number of projects is less one")
 
@@ -271,19 +434,26 @@ tape("DELETE /v1/projects/:projectid", function (t) {
   ], function(err){
     if(err){
       t.error(err)
+      server.close()
       t.end()
       return
     }
+    server.close()
     t.end()
   })
 
 })
 
-
 /*
+
   unit test for the storage mechanism
+
 */
 tape("jsonfile: create project", function(t){
+
+  var storage = JSONFileStorage({
+    memory:true
+  })
 
   // create a project
   storage.create_project(jenca_user_id, {
@@ -293,7 +463,7 @@ tape("jsonfile: create project", function(t){
     var state = storage.get_state()
 
     var project_keys = Object.keys(state.users[jenca_user_id].projects)
-    t.equal(project_keys.length, (projects.length+1), "there are "+ (projects.length+1)+" projects")
+    t.equal(project_keys.length, 1, "there is 1 project")
 
     var project_id = project_keys.pop()
     var project = state.users[jenca_user_id].projects[project_id]
@@ -302,6 +472,5 @@ tape("jsonfile: create project", function(t){
     t.deepEqual(project.containers, [], "there is an empty list of containers")
 
     t.end()
-    server.close()
   })
 })

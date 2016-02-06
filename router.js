@@ -9,9 +9,11 @@ module.exports = function(config){
 
   router.set('/v1/version', Version(config))
 
+  var projectHandlers = Projects(config)
+
   // fish out user id from headers
-  router.set('/v1/projects', Projects.index())
-  router.set('/v1/projects/:projectid', Projects.show())
+  router.set('/v1/projects', projectHandlers.index)
+  router.set('/v1/projects/:projectid', projectHandlers.show)
 
 
   function handler(req, res) {
