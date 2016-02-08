@@ -234,6 +234,10 @@ module.exports = function(opts){
     });
   }
 
+  function close(done){
+    db.close()
+    con.close()
+  }
 /*  function get_default(key, default_value, cb){
     get(key, function (err, value) {
       console.dir(value)
@@ -251,5 +255,6 @@ module.exports = function(opts){
     list_projects:list_projects,
     delete_project:delete_project,
     save_project:save_project,
+    close:close
   }
 }

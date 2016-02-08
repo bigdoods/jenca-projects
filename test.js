@@ -549,7 +549,6 @@ tape("leveldb: create project", function(t){
           t.deepEqual(project.containers, [], "there is an empty list of containers")
 
           next()
-
         })
       })
     }
@@ -558,11 +557,13 @@ tape("leveldb: create project", function(t){
       t.error(err)
       db.close()
       con.close()
+      storage.close()
       t.end()
       return
     }
     db.close()
     con.close()
+    storage.close()
     t.end()
   })
 })
