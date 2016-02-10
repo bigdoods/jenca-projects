@@ -20,7 +20,6 @@ var subject_project_index = 5
 
 */
 
-
 tape("jsonfile: create project", function(t){
 
   var storage = JSONFileStorage({
