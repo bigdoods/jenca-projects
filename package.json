@@ -5,7 +5,7 @@
   "description": "The jenca projects service",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "set -e; for t in test/*.js; do echo '***' $t '***'; node $t; done"
   },
   "repository": {
     "type": "git",
