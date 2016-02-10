@@ -3,6 +3,7 @@ var async = require("async")
 var Router = require("./router")
 var JSONFileStorage = require("./storage/jsonfile")
 var levelDBStorage = require("./storage/leveldb")
+var levelDBStorageAPI = require("./storage/leveldbapi")
 var path = require("path")
 var http = require("http")
 var from2 = require("from2-string")
@@ -10,16 +11,15 @@ var hyperquest = require("hyperquest")
 var hyperrequest = require("hyperrequest")
 var concat = require("concat-stream")
 var settings = require('./settings')
-var rimraf = require("rimraf")
+var multilevel = require('multilevel');
+var net = require('net');
+
+var level = require('level-test')()
+
 
 var jenca_user_id = "banana-man"
 var testing_port = 8060
 var subject_project_index = 5
-
-
-var multilevel = require('multilevel');
-var net = require('net');
-var level = require('level');
 
 
 /*
@@ -483,67 +483,61 @@ tape("jsonfile: create project", function(t){
   })
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
+/*
 function createLevelServer(done){
-  rimraf("/tmp/leveldb-testing", {}, function(err){
-    if(err) return next(err)
+  
+  var db = level('multilevel-tests');
+  var con
+  net.createServer(function (connection) {
+    connection.pipe(multilevel.server(db)).pipe(connection);
+    con = connection
+  }).listen(8889, function(){
+    console.log('multilevel server listening')
+    done(null, db, con)
+  });
 
-    var db = level("/tmp/leveldb-testing");
-    var con
-    net.createServer(function (connection) {
-      connection.pipe(multilevel.server(db)).pipe(connection);
-      con = connection
-    }).listen(8889, function(){
-      done(null, db, con)
-    });
-
-  })
 }
+
+function createLevelClient(done){
+
+  var db = multilevel.client();
+  var con = net.connect(8889);
+  con.pipe(db.createRpcStream()).pipe(con);
+
+  done(null, db)
+
+}*/
 
 tape("leveldb: create project", function(t){
 
-  var storage = levelDBStorage({port:8889,host:"localhost"})
-  var db
-  var con
-
+  // this is a 'test-level' which gives us a fresh level API
+  // this is a mock for the multilevel client which is also
+  // the level API
+  var db = level('tests');
+  var storage = levelDBStorageAPI(db)
+  
   async.series([
-
-    // create the server
-    function(next){
-      createLevelServer(function(err, database, connection){
-        if(err) return next(err)
-        db = database
-        con = connection
-        next()
-      })
-    },
 
     function(next){
       // create a project
       storage.create_project(jenca_user_id, {
         apples:"10"
-      }, function(err){
-        if(err) return next(err)
+      }, function(err, project){
+
+        if(err){
+          next(err)
+          return
+        }
+
+        t.equal(typeof(project.id), 'string', 'the project id is a string')
 
         storage.list_projects(jenca_user_id, function(err, projects){
-          if(err) next(err)
+          if(err) return next(err)
+          
+          t.equal(projects.length, 1, "there is 1 project")
 
-          var project_keys = Object.keys(projects)
-          t.equal(project_keys.length, 1, "there is 1 project")
 
-          var project_id = project_keys.pop()
-          var project = projects[project_id]
+          var project = projects[0]
 
           t.equal(project.apples, "10", "the project setting is set")
           t.deepEqual(project.containers, [], "there is an empty list of containers")
@@ -556,14 +550,9 @@ tape("leveldb: create project", function(t){
     if(err){
       t.error(err)
       db.close()
-      con.close()
-      storage.close()
-      t.end()
       return
     }
     db.close()
-    con.close()
-    storage.close()
     t.end()
   })
 })
