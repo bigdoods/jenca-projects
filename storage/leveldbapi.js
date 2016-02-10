@@ -1,7 +1,6 @@
 var uuid = require('uuid');
 var path = require('path');
 var settings = require('../settings');
-var dot = require('dot-object');
 var Tools = require('./leveldbtools')
 
 /*

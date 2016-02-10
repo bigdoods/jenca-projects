@@ -452,11 +452,14 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 
 })
 
+
 /*
 
   unit test for the storage mechanisms
 
 */
+
+
 tape("jsonfile: create project", function(t){
 
   var storage = JSONFileStorage({
@@ -483,37 +486,16 @@ tape("jsonfile: create project", function(t){
   })
 })
 
+
 /*
-function createLevelServer(done){
+
+  pass a LevelUP api of some kind to test
+  the project creation / listing loop
+
+*/
+
+function runCreateProjectTest(t, db, done){
   
-  var db = level('multilevel-tests');
-  var con
-  net.createServer(function (connection) {
-    connection.pipe(multilevel.server(db)).pipe(connection);
-    con = connection
-  }).listen(8889, function(){
-    console.log('multilevel server listening')
-    done(null, db, con)
-  });
-
-}
-
-function createLevelClient(done){
-
-  var db = multilevel.client();
-  var con = net.connect(8889);
-  con.pipe(db.createRpcStream()).pipe(con);
-
-  done(null, db)
-
-}*/
-
-tape("leveldb: create project", function(t){
-
-  // this is a 'test-level' which gives us a fresh level API
-  // this is a mock for the multilevel client which is also
-  // the level API
-  var db = level('tests');
   var storage = levelDBStorageAPI(db)
   
   async.series([
@@ -546,7 +528,18 @@ tape("leveldb: create project", function(t){
         })
       })
     }
-  ], function(err){
+  ], done)
+}
+
+
+tape("leveldb test: create project", function(t){
+
+  // this is a 'test-level' which gives us a fresh level API
+  // this is a mock for the multilevel client which is also
+  // the level API
+  var db = level('tests');
+
+  runCreateProjectTest(t, db, function(err){
     if(err){
       t.error(err)
       db.close()
@@ -556,3 +549,69 @@ tape("leveldb: create project", function(t){
     t.end()
   })
 })
+
+tape("leveldb multilevel: create project", function(t){
+
+  // this is a 'test-level' which gives us a fresh level API
+  // this is a mock for the multilevel client which is also
+  // the level API
+  var client
+  var server
+
+  async.series([
+    function(next){
+      createLevelServer(function(err, con){
+        if(err) return next(err)
+        server = con
+        next()
+      })
+    },
+
+    function(next){
+      createLevelClient(function(err, cl){
+        if(err) return next(err)
+        client = cl
+        next()
+      })
+    },
+
+    function(next){
+      runCreateProjectTest(t, client, next)
+    }
+  ], function(err){
+    client.close()
+    server.close()
+    if(err){
+      t.error(err)
+      return
+    }
+    t.end()
+  })
+})
+
+
+function createLevelServer(done){
+  
+  var db = level('multilevel-tests');
+  
+  var server = net.createServer(function (connection) {
+    connection.pipe(multilevel.server(db)).pipe(connection);
+  })
+
+  server.listen(8889, function(){
+    console.log('multilevel server listening')
+    done(null, server)
+  });
+
+}
+
+function createLevelClient(done){
+
+  var db = multilevel.client();
+  var con = net.connect(8889);
+  con.pipe(db.createRpcStream()).pipe(con);
+
+  done(null, db)
+
+}
+
