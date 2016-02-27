@@ -1,13 +1,14 @@
 var tape = require("tape")
 var async = require("async")
-var Router = require("./router")
-var JSONFileStorage = require("./storage/jsonfile")
+var Router = require("../router")
 var path = require("path")
 var http = require("http")
 var from2 = require("from2-string")
 var hyperquest = require("hyperquest")
 var hyperrequest = require("hyperrequest")
 var concat = require("concat-stream")
+var settings = require('../settings')
+
 
 var jenca_user_id = "banana-man"
 var testing_port = 8060
@@ -18,7 +19,7 @@ var subject_project_index = 5
 
   boot a test server for each test so the state from one
   does not affect another test
-  
+
 */
 function createServer(done){
 
@@ -33,14 +34,14 @@ function createServer(done){
 }
 
 /*
-  
+
   make a list of N projects
-  
+
 */
 function getProjectData(count){
 
   count = count || 10;
-  
+
   var projectData = []
   for(i=1;i<=count;i++){
     projectData.push({
@@ -54,22 +55,22 @@ function getProjectData(count){
 
   post 10 projects to the test server
   return an array of the 10 projects as they exist on the server
-  
+
 */
 function populateData(projects, done){
   var projectData = []
   /*
-  
+
     map the array of names onto an array of functions
     that will POST a project with that name
-    
+
   */
   var createFunctions = projects.map(function(data){
 
     /*
-    
+
       this is the async function that will run via async.series
-      
+
     */
     return function(next){
       hyperrequest({
@@ -92,10 +93,10 @@ function populateData(projects, done){
   })
 
   /*
-  
+
     run over the project creation
     return the array of returned project data
-    
+
   */
   async.series(createFunctions, function(err){
     if(err) return done(err)
@@ -108,7 +109,7 @@ function populateData(projects, done){
 */
 tape("GET /v1/version", function (t) {
 
-  var config = require(path.join(__dirname, "package.json"))
+  var config = require(path.join(__dirname, '..', "package.json"))
   var server;
 
   async.series([
@@ -165,7 +166,7 @@ tape("GET /v1/version", function (t) {
 /*
 
   Query the api to check the projects we have saved are actually there
-  
+
 */
 
 tape("GET /v1/projects", function (t) {
@@ -183,7 +184,7 @@ tape("GET /v1/projects", function (t) {
         next()
       })
     },
-    
+
     // populate some projects
     function(next){
       var rawData = getProjectData(10)
@@ -444,33 +445,5 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 
 })
 
-/*
 
-  unit test for the storage mechanism
 
-*/
-tape("jsonfile: create project", function(t){
-
-  var storage = JSONFileStorage({
-    memory:true
-  })
-
-  // create a project
-  storage.create_project(jenca_user_id, {
-    apples:10
-  }, function(err){
-    if(err) t.err(err.toString())
-    var state = storage.get_state()
-
-    var project_keys = Object.keys(state.users[jenca_user_id].projects)
-    t.equal(project_keys.length, 1, "there is 1 project")
-
-    var project_id = project_keys.pop()
-    var project = state.users[jenca_user_id].projects[project_id]
-
-    t.equal(project.apples, 10, "the project setting is set")
-    t.deepEqual(project.containers, [], "there is an empty list of containers")
-
-    t.end()
-  })
-})
