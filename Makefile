@@ -18,3 +18,10 @@ test:
 	docker run -ti --rm \
 		--entrypoint npm \
 		jenca-cloud/$(SERVICE):$(VERSION)-dev test
+
+# this automates the installation of the node_modules folder on the host
+developer: build
+	@docker run -ti --rm \
+		--entrypoint "bash" \
+		-v $(PWD)/src/api:/srv/app \
+		jenca-cloud/$(SERVICE):$(VERSION) -c "cd /srv/app && npm install"
