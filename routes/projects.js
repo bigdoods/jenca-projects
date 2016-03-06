@@ -4,7 +4,7 @@ var concat = require('concat-stream')
 
 module.exports = function(config){
 
-  var storage = JSONFileStorage(config)
+  var storage = config.storage || JSONFileStorage(config)
 
   return {
     index:{
