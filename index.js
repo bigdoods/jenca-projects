@@ -8,16 +8,33 @@ var args = require('minimist')(process.argv, {
   alias:{
     p:'port',
     s:'storage',
-    d:'datafile'
+    d:'datafile',
+    lh:'levelhost',
+    lp:'levelport'
   },
   default:{
     port:process.env.PORT || 80,
     storage:process.env.STORAGE || 'jsonfile',
-    datafile:process.env.DATAFILE || settings.defaultFilePath
+    datafile:process.env.DATAFILE || settings.defaultFilePath,
+    levelhost:process.env.LEVEL_HOST || '127.0.0.1',
+    levelport:process.env.LEVEL_PORT || 80
   }
 })
 
-var storage = require('storage/' + args.storage)(args)
+var storageoptions = {}
+
+if(args.storage=='jsonfile'){
+  storageoptions.datafile = args.datafile
+}
+else if(args.storage=='leveldb'){
+  storageoptions.host = args.levelhost || ''
+  if(storageoptions.host.indexOf('env:')){
+    storageoptions.host = process.env[storageoptions.host.split(':')[1]]
+  }
+  storageoptions.port = args.levelport
+}
+
+var storage = require('storage/' + args.storage)(storageoptions)
 var router = Router({
   storage:storage,
   datafile:datafile
