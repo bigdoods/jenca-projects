@@ -34,10 +34,10 @@ else if(args.storage=='leveldb'){
   storageoptions.port = args.levelport
 }
 
-var storage = require('storage/' + args.storage)(storageoptions)
+var storage = require('./storage/' + args.storage)(storageoptions)
 var router = Router({
   storage:storage,
-  datafile:datafile
+  datafile:args.datafile
 })
 
 var server = http.createServer(router.handler)
