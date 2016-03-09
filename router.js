@@ -7,7 +7,7 @@ module.exports = function(config){
 
   var router = HttpHashRouter();
 
-  router.set('/v1/version', Version(config))
+  router.set('/v1/projects/version', Version(config))
 
   var projectHandlers = Projects(config)
 

@@ -107,7 +107,7 @@ function populateData(projects, done){
 /*
   Test that the version of the module returns the correct string
 */
-tape("GET /v1/version", function (t) {
+tape("GET /v1/projects/version", function (t) {
 
   var config = require(path.join(__dirname, '..', "package.json"))
   var server;
@@ -125,7 +125,7 @@ tape("GET /v1/version", function (t) {
 
     // read the version from the API
     function(next){
-      var req = hyperquest("http://127.0.0.1:"+testing_port+"/v1/version", {
+      var req = hyperquest("http://127.0.0.1:"+testing_port+"/v1/projects/version", {
         method:"GET",
         headers:{
           "x-jenca-user":jenca_user_id
