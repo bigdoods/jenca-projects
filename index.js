@@ -34,10 +34,20 @@ else if(args.storage=='leveldb'){
   storageoptions.port = args.levelport
 }
 
+/*
+
+  we will put an api call to the runtime service here
+  
+*/
+function containerizer(req, done){
+  done(null, {})
+}
+
 var storage = require('./storage/' + args.storage)(storageoptions)
 var router = Router({
   storage:storage,
-  datafile:args.datafile
+  datafile:args.datafile,
+  containerizer:containerizer
 })
 
 var server = http.createServer(router.handler)

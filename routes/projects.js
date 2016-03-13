@@ -5,6 +5,11 @@ var concat = require('concat-stream')
 module.exports = function(config){
 
   var storage = config.storage || JSONFileStorage(config)
+  var containerizer = config.containerizer
+
+  if(!containerizer){
+    throw new Error('the projects router needs a containerizer function')
+  }
 
   return {
     index:{
@@ -41,7 +46,7 @@ module.exports = function(config){
       }
 
     },
-    show:{
+    project:{
       GET:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
         storage.get_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, data){
@@ -81,6 +86,59 @@ module.exports = function(config){
           // trigger kubernetes to kill of relevant containers
           res.end()
         })
+      }
+    },
+    status:{
+      PUT:function(req, res, opts, cb){
+        res.setHeader('content-type', 'application/json')
+
+        req.pipe(concat(function(body){
+
+          body = JSON.parse(body.toString())
+
+          storage.get_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, project){
+            if(err){
+              res.statusCode = 500;
+              res.end(err.toString());
+              return;
+            }
+
+            // this is a no-op
+            if(body.running == project.running){
+              res.statusCode = 200
+              res.end({
+                running:project.running
+              })
+              return
+            }
+
+            var containerizerAction = body.running ? 'start' : 'stop'
+
+            containerizer({
+              action:containerizerAction,
+              project:project
+            }, function(err, runState){
+              if(err){
+                res.statusCode = 500
+                res.end(err.toString())
+                return
+              }
+              project.running = body.running
+              project.runState = runState
+              storage.save_project(req.headers['x-jenca-user'], opts.params.projectid, project, function(err, data){
+                if(err){
+                  res.statusCode = 500
+                  res.end(err.toString())
+                  return
+                }
+                res.end(JSON.stringify(runState))
+              })
+            })
+            
+
+          })
+
+        }))
       }
     }
   }

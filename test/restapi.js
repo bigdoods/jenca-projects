@@ -529,7 +529,7 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(containerizerRequests.length, 1, "There is 1 containerizer request")
-        t.equal(containerizerRequests[9].action, "start", "It is a start request")
+        t.equal(containerizerRequests[0].action, "start", "It is a start request")
         next()
       });
 
@@ -551,7 +551,7 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(containerizerRequests.length, 2, "There are 2 containerizer requests")
-        t.equal(containerizerRequests[9].action, "stop", "It is a stop request")
+        t.equal(containerizerRequests[1].action, "stop", "It is a stop request")
         next()
       });
 

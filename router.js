@@ -12,7 +12,8 @@ module.exports = function(config){
   var projectHandlers = Projects(config)
 
   router.set('/v1/projects', projectHandlers.index)
-  router.set('/v1/projects/:projectid', projectHandlers.show)
+  router.set('/v1/projects/:projectid', projectHandlers.project)
+  router.set('/v1/projects/:projectid/status', projectHandlers.status)
 
 
   function handler(req, res) {
