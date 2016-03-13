@@ -11,12 +11,14 @@ module.exports = function(config){
 
   var projectHandlers = Projects(config)
 
-  // fish out user id from headers
   router.set('/v1/projects', projectHandlers.index)
   router.set('/v1/projects/:projectid', projectHandlers.show)
 
 
   function handler(req, res) {
+
+    // XXX: this is a horrible hack - change it
+    req.headers['x-jenca-user'] = 1
     router(req, res, {}, onError);
 
     function onError(err) {
