@@ -21,11 +21,41 @@ var subject_project_index = 5
   does not affect another test
 
 */
-function createServer(done){
+function createServer(opts, done){
+
+  // allow no options to be passed just
+  // the callback
+  if(arguments.length==1){
+    done = opts
+    opts = {}
+  }
 
   // keep the storage in memory for the tests
   var router = Router({
-    memory:true
+    memory:true,
+    // a mock containerizer function
+    // it returns immediately with some fixture data
+    containerizer:function(req, done){
+      // allows a test to see what requests
+      // were sent to the containerizer
+      if(opts.containerizerSpy){
+        opts.containerizerSpy(req)
+      }
+      switch(req.action) {
+        case 'start':
+          done(null, {
+            // put the data the containerizer would return for a start
+          })
+          break;
+        case 'stop':
+          done(null, {
+            // put the data the containerizer would return for a start
+          })
+          break;
+        default:
+          done('un recognized containerizer action: ' + req.action)
+      }
+    }
   })
   var server = http.createServer(router.handler)
   server.listen(testing_port, function(err){
@@ -430,6 +460,100 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 
         next()
       })
+
+    }
+  ], function(err){
+    if(err){
+      t.error(err)
+      server.close()
+      t.end()
+      return
+    }
+    server.close()
+    t.end()
+  })
+
+})
+
+
+// seed the system with projects and start one then stop it
+tape("PUT /v1/projects/:projectid/status", function (t) {
+
+  var projects;
+  var server;
+
+  var containerizerRequests = []
+
+  async.series([
+
+
+    // create the server
+    function(next){
+      createServer({
+        containerizerSpy:function(req){
+          console.log('-------------------------------------------');
+          console.log('containerizer spy')
+          console.dir(req)
+          containerizerRequests.push(req)
+        }
+      }, function(err, s){
+        if(err) return next(err)
+        server = s
+        next()
+      })
+    },
+
+    // populate some projects
+    function(next){
+      var rawData = getProjectData(10)
+      populateData(rawData, function(err, projectsReturned){
+        if(err) return next(err)
+        projects = projectsReturned;
+        next()
+      })
+    },
+
+    function(next){
+
+      var req = hyperrequest({
+        "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
+        method:"PUT",
+        headers:{
+          "x-jenca-user":jenca_user_id
+        },
+        json:{
+          running:true
+        }
+      }, function(err, resp){
+        if(err) return subnext(err)
+
+        t.equal(resp.statusCode, 200, "The status code == 200")
+        t.equal(containerizerRequests.length, 1, "There is 1 containerizer request")
+        t.equal(containerizerRequests[9].action, "start", "It is a start request")
+        next()
+      });
+
+    },
+
+    function(next){
+      
+      var req = hyperrequest({
+        "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
+        method:"PUT",
+        headers:{
+          "x-jenca-user":jenca_user_id
+        },
+        json:{
+          running:false
+        }
+      }, function(err, resp){
+        if(err) return subnext(err)
+
+        t.equal(resp.statusCode, 200, "The status code == 200")
+        t.equal(containerizerRequests.length, 2, "There are 2 containerizer requests")
+        t.equal(containerizerRequests[9].action, "stop", "It is a stop request")
+        next()
+      });
 
     }
   ], function(err){
