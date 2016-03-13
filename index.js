@@ -43,11 +43,22 @@ function containerizer(req, done){
   done(null, {})
 }
 
+/*
+
+  we will put an api call to the authentication service here
+  
+*/
+
+function authenticator(req, done){
+  done(null, {})
+}
+
 var storage = require('./storage/' + args.storage)(storageoptions)
 var router = Router({
   storage:storage,
   datafile:args.datafile,
-  containerizer:containerizer
+  containerizer:containerizer,
+  authenticator:authenticator
 })
 
 var server = http.createServer(router.handler)

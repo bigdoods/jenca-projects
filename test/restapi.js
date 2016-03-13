@@ -33,6 +33,17 @@ function createServer(opts, done){
   // keep the storage in memory for the tests
   var router = Router({
     memory:true,
+    // a mock authenticator function
+    // it returns immediately with a fixed user
+    authenticator:function(req, done){
+      if(opts.authenticatorSpy){
+        opts.authenticatorSpy(req)
+      }
+      done(null, {
+        email:jenca_user_id,
+        is_authenticated:true
+      })
+    },
     // a mock containerizer function
     // it returns immediately with some fixture data
     containerizer:function(req, done){
@@ -106,10 +117,7 @@ function populateData(projects, done){
       hyperrequest({
         url: "http://127.0.0.1:"+ testing_port +"/v1/projects",
         method: "POST",
-        json: data,
-        headers: {
-            "x-jenca-user":jenca_user_id
-        }
+        json: data
       }, function(err, resp){
 
         // always return errors so parent code is notified
@@ -156,10 +164,7 @@ tape("GET /v1/projects/version", function (t) {
     // read the version from the API
     function(next){
       var req = hyperquest("http://127.0.0.1:"+testing_port+"/v1/projects/version", {
-        method:"GET",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"GET"
       })
 
       var destStream = concat(function(result){
@@ -229,10 +234,7 @@ tape("GET /v1/projects", function (t) {
     function(next){
       hyperrequest({
         "url":"http://127.0.0.1:"+ testing_port +"/v1/projects",
-        method:"GET",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"GET"
       }, function(err, resp){
         if(err) return next(err)
         t.equal(resp.statusCode, 200, "The status code == 200")
@@ -290,10 +292,7 @@ tape("GET /v1/projects/:projectid", function (t) {
 
       hyperrequest({
         "url": "http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
-        method:"GET",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"GET"
       }, function(err, resp){
         if(err) return subnext(err)
 
@@ -354,10 +353,7 @@ tape("PUT /v1/projects/:projectid", function (t) {
       var req = hyperrequest({
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
         method:"PUT",
-        json:projects[subject_project_index],
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        json:projects[subject_project_index]
       }, function(err, resp){
         if(err) return subnext(err)
 
@@ -372,10 +368,7 @@ tape("PUT /v1/projects/:projectid", function (t) {
     function(next){
       var req = hyperrequest({
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
-        method:"GET",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"GET"
       }, function(err, resp){
         if(err) return subnext(err)
 
@@ -432,10 +425,7 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 
       var req = hyperrequest({
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
-        method:"DELETE",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"DELETE"
       }, function(err, resp){
         if(err) return subnext(err)
 
@@ -448,10 +438,7 @@ tape("DELETE /v1/projects/:projectid", function (t) {
     function(next){
       hyperrequest({
         "url":"http://127.0.0.1:"+ testing_port +"/v1/projects",
-        method:"GET",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        }
+        method:"GET"
       }, function(err, resp){
         if(err) return next(err)
 
@@ -518,9 +505,6 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
       var req = hyperrequest({
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
         method:"PUT",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        },
         json:{
           running:true
         }
@@ -540,9 +524,6 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
       var req = hyperrequest({
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
         method:"PUT",
-        headers:{
-          "x-jenca-user":jenca_user_id
-        },
         json:{
           running:false
         }
