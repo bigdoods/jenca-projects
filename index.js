@@ -51,7 +51,7 @@ else if(args.storage=='leveldb'){
 */
 function containerizer(opts, done){
   hyperrequest({
-    url: "http://" + args.runtimehost + ":"+ args.runtimeport +"/v1/" + opts.action,
+    url: "http://" + processArg(args.runtimehost) + ":"+ args.runtimeport +"/v1/" + opts.action,
     method: "POST",
     headers:{
       'x-jenca-user':opts.user,
@@ -75,7 +75,7 @@ function containerizer(opts, done){
 
 function authenticator(req, done){
   hyperrequest({
-    url: "http://" + args.authhost + ":"+ args.authport +"/status",
+    url: "http://" + processArg(args.authhost) + ":"+ args.authport +"/status",
     method: "GET",
     headers:{
       'set-cookie':req.headers['set-cookie'],
