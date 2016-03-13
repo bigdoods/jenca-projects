@@ -115,6 +115,7 @@ module.exports = function(config){
             var containerizerAction = body.running ? 'start' : 'stop'
 
             containerizer({
+              user:req.headers['x-jenca-user'],
               action:containerizerAction,
               project:project
             }, function(err, runState){
