@@ -3,7 +3,7 @@ var http = require('http')
 var fs = require('fs')
 var Router = require('./router')
 var settings = require('./settings')
-var request = require('hyperrequest')
+var hyperrequest = require('hyperrequest')
 
 var args = require('minimist')(process.argv, {
   alias:{
