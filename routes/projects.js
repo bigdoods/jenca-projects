@@ -90,6 +90,22 @@ module.exports = function(config){
       }
     },
     status:{
+      GET:function(req, res, opts, cb){
+        res.setHeader('content-type', 'application/json')
+
+        storage.get_project(req.headers['x-jenca-user'], opts.params.projectid, function(err, project){
+          if(err){
+            res.statusCode = 500;
+            res.end(err.toString());
+            return;
+          }
+
+          res.end(JSON.stringify({
+            running:project.running,
+            runState:project.runState
+          }))
+        })
+      },
       PUT:function(req, res, opts, cb){
         res.setHeader('content-type', 'application/json')
 
