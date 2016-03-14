@@ -30,6 +30,7 @@ module.exports = function(config){
 
         req.pipe(concat(function(body){
           body = JSON.parse(body.toString())
+
           storage.create_project(req.headers['x-jenca-user'], body, function(err, data){
             if(err){
               res.statusCode = 500;

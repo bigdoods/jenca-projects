@@ -22,13 +22,13 @@ var args = require('minimist')(process.argv, {
     runtimehost:process.env.RUNTIME_HOST || '127.0.0.1',
     runtimeport:process.env.RUNTIME_PORT || 80,
     authhost:process.env.AUTH_HOST || '127.0.0.1',
-    authport:process.env.AUTH_PORT || 80,
+    authport:process.env.AUTH_PORT || 5000,
   }
 })
 
 function processArg(value){
   value = value || ''
-  if(value.indexOf('env:')){
+  if(value.indexOf('env:')==0){
     value = process.env[value.split(':')[1]]
   }
   return value
@@ -78,10 +78,9 @@ function authenticator(req, done){
     url: "http://" + processArg(args.authhost) + ":"+ args.authport +"/status",
     method: "GET",
     headers:{
-      'set-cookie':req.headers['set-cookie'],
+      'cookie':req.headers.cookie,
       'Content-type':'application/json'
-    },
-    json:true
+    }
   }, function(err, resp){
 
     if(err) return done(err.toString())

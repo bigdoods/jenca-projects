@@ -30,7 +30,7 @@ module.exports = function(config){
         res.statusCode = err.statusCode || 500;
         res.end(err.message);
       }
-    } 
+    }
 
     if(req.url=='/v1/projects/version'){
       router(req, res, {}, onError);
@@ -40,7 +40,11 @@ module.exports = function(config){
     // to use any of the projects api you must be logged in
     config.authenticator(req, function(err, result){
 
-      if(err) return onError(err)
+      if(err){
+        res.statusCode = 500;
+        res.end(err.toString());
+        return
+      }
 
       if(result.is_authenticated){
         req.headers['x-jenca-user'] = result.email
