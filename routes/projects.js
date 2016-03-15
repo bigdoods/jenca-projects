@@ -101,8 +101,8 @@ module.exports = function(config){
           }
 
           res.end(JSON.stringify({
-            running:project.running,
-            runState:project.runState
+            running:project.running || false,
+            runState:project.runState || {}
           }))
         })
       },

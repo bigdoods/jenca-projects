@@ -497,6 +497,22 @@ tape("/v1/projects/:projectid/status", function (t) {
       })
     },
 
+
+    function(next){
+
+      var req = hyperrequest({
+        "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
+        method:"GET"
+      }, function(err, resp){
+        if(err) return next(err)
+
+        t.equal(resp.body.running, false, 'running is false')
+        
+        next()
+      });
+
+    },
+
     function(next){
 
       var req = hyperrequest({
