@@ -55,12 +55,12 @@ function createServer(opts, done){
       switch(req.action) {
         case 'start':
           done(null, {
-            // put the data the containerizer would return for a start
+            containerizerAction: 'start'
           })
           break;
         case 'stop':
           done(null, {
-            // put the data the containerizer would return for a start
+            containerizerAction: 'stop'
           })
           break;
         default:
@@ -294,7 +294,7 @@ tape("GET /v1/projects/:projectid", function (t) {
         "url": "http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
         method:"GET"
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(resp.body.name, projects[subject_project_index].name, "the requested project's name matches")
@@ -355,7 +355,7 @@ tape("PUT /v1/projects/:projectid", function (t) {
         method:"PUT",
         json:projects[subject_project_index]
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(resp.body.name, projects[subject_project_index].name, "the requested project's name matches")
@@ -370,7 +370,7 @@ tape("PUT /v1/projects/:projectid", function (t) {
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
         method:"GET"
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(resp.body.name, projects[subject_project_index].name, "the requested project's name matches")
@@ -427,7 +427,7 @@ tape("DELETE /v1/projects/:projectid", function (t) {
         "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id,
         method:"DELETE"
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         next()
@@ -464,7 +464,7 @@ tape("DELETE /v1/projects/:projectid", function (t) {
 
 
 // seed the system with projects and start one then stop it
-tape("PUT /v1/projects/:projectid/status", function (t) {
+tape("/v1/projects/:projectid/status", function (t) {
 
   var projects;
   var server;
@@ -478,9 +478,6 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
     function(next){
       createServer({
         containerizerSpy:function(req){
-          console.log('-------------------------------------------');
-          console.log('containerizer spy')
-          console.dir(req)
           containerizerRequests.push(req)
         }
       }, function(err, s){
@@ -509,11 +506,28 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
           running:true
         }
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(containerizerRequests.length, 1, "There is 1 containerizer request")
         t.equal(containerizerRequests[0].action, "start", "It is a start request")
+        next()
+      });
+
+    },
+
+
+    function(next){
+
+      var req = hyperrequest({
+        "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
+        method:"GET"
+      }, function(err, resp){
+        if(err) return next(err)
+
+        t.equal(resp.body.running, true, 'running is true')
+        t.equal(resp.body.runState.containerizerAction, 'start', 'the action is start')
+        
         next()
       });
 
@@ -528,11 +542,28 @@ tape("PUT /v1/projects/:projectid/status", function (t) {
           running:false
         }
       }, function(err, resp){
-        if(err) return subnext(err)
+        if(err) return next(err)
 
         t.equal(resp.statusCode, 200, "The status code == 200")
         t.equal(containerizerRequests.length, 2, "There are 2 containerizer requests")
         t.equal(containerizerRequests[1].action, "stop", "It is a stop request")
+        next()
+      });
+
+    },
+
+
+    function(next){
+
+      var req = hyperrequest({
+        "url":"http://127.0.0.1:"+testing_port+"/v1/projects/"+ projects[subject_project_index].id + "/status",
+        method:"GET"
+      }, function(err, resp){
+        if(err) return next(err)
+
+        t.equal(resp.body.running, false, 'running is false')
+        t.equal(resp.body.runState.containerizerAction, 'stop', 'the action is stop')
+        
         next()
       });
 
