@@ -124,7 +124,8 @@ module.exports = function(config){
             if(body.running == project.running){
               res.statusCode = 200
               res.end({
-                running:project.running
+                running:project.running,
+                runState:project.runState
               })
               return
             }
