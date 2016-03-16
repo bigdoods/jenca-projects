@@ -3,6 +3,7 @@ var http = require('http')
 var fs = require('fs')
 var Router = require('./router')
 var settings = require('./settings')
+var request = require('request')
 var hyperrequest = require('hyperrequest')
 
 var args = require('minimist')(process.argv, {
@@ -20,7 +21,7 @@ var args = require('minimist')(process.argv, {
     levelhost:process.env.LEVEL_HOST || '127.0.0.1',
     levelport:process.env.LEVEL_PORT || 80,
     runtimehost:process.env.RUNTIME_HOST || '127.0.0.1',
-    runtimeport:process.env.RUNTIME_PORT || 80,
+    runtimeport:80,
     authhost:process.env.AUTH_HOST || '127.0.0.1',
     authport:process.env.AUTH_PORT || 5000,
   }
@@ -50,12 +51,12 @@ else if(args.storage=='leveldb'){
   
 */
 function containerizer(opts, done){
-  hyperrequest({
+
+  request({
     url: "http://" + processArg(args.runtimehost) + ":"+ args.runtimeport +"/v1/" + opts.action,
     method: "POST",
     headers:{
-      'x-jenca-user':opts.user,
-      'Content-type':'application/json'
+      'x-jenca-user':opts.user
     },
     json:true,
     body:opts.project
