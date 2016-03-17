@@ -17,9 +17,12 @@ module.exports = function(config){
         res.setHeader('content-type', 'application/json')
         storage.list_projects(req.headers['x-jenca-user'], function(err, data){
           if(err){
+            /*
             res.statusCode = 500;
             res.end(err.toString());
             return;
+            */
+            data = []
           }
 
           res.end(JSON.stringify(data))
